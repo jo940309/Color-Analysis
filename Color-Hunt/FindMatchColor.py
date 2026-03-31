@@ -1,6 +1,6 @@
 import json
 
-def find_match_color(target_hex, json_file='color_palettes.json'):
+def find_match_color(target_hex, json_file='Color-Analysis\Color-Hunt\color_palettes.json'):
     # 1. 讀取先前抓好的資料
     try:
         with open(json_file, 'r', encoding='utf-8') as f:
@@ -39,4 +39,4 @@ def find_match_color(target_hex, json_file='color_palettes.json'):
 
 # --- 使用範例 ---
 # 假設你想找包含粉色系 #FF9A9E 的熱門色板
-find_match_color("#fff2eb")
+find_match_color("#ffdcdc")

@@ -8,7 +8,7 @@ def get_color_hunt(target_count=500):
     
     # 1. 設定指定儲存路徑
     # 建議使用絕對路徑，例如 "D:/Color Analysis/Color-Analysis/Color-Hunt/"
-    save_directory = r"D:\Color Analysis\Color-Analysis\Color-Hunt" 
+    save_directory = r"Color-Analysis\Color-Hunt" 
     file_name = "color_palettes.json"
     full_path = os.path.join(save_directory, file_name)
 

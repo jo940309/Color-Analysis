@@ -39,4 +39,4 @@ def find_match_color(target_hex, json_file='Color-Analysis\Color-Hunt\color_pale
 
 # --- 使用範例 ---
 # 假設你想找包含粉色系 #FF9A9E 的熱門色板
-find_match_color("#ffdcdc")
+find_match_color("#faf7f3")

@@ -120,4 +120,4 @@ def get_color_hunt(target_count=500):
     return all_data
 
 if __name__ == "__main__":
-    get_color_hunt(500)
+    get_color_hunt(1000)

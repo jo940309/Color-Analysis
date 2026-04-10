@@ -1,42 +1,134 @@
 import json
+import numpy as np
+from colormath.color_objects import LabColor, sRGBColor
+from colormath.color_conversions import convert_color
+from colormath.color_diff import delta_e_cie1976
 
-def find_match_color(target_hex, json_file='Color-Analysis\Color-Hunt\color_palettes.json'):
-    # 1. 讀取先前抓好的資料
+
+# ---------- 工具區 ----------
+
+def clean_hex(hex_color):
+    hex_color = hex_color.strip().lower()
+    if not hex_color.startswith('#'):
+        hex_color = '#' + hex_color
+    return hex_color
+
+
+def hex_to_lab(hex_color):
+    hex_color = clean_hex(hex_color).lstrip('#')
+
+    if len(hex_color) != 6:
+        raise ValueError("Invalid HEX")
+
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+
+    rgb = sRGBColor(r, g, b, is_upscaled=True)
+    lab = convert_color(rgb, LabColor)
+    return lab
+
+
+def lab_to_hex(lab):
+    rgb = convert_color(lab, sRGBColor)
+
+    r = min(max(int(rgb.rgb_r * 255), 0), 255)
+    g = min(max(int(rgb.rgb_g * 255), 0), 255)
+    b = min(max(int(rgb.rgb_b * 255), 0), 255)
+
+    return "#{:02x}{:02x}{:02x}".format(r, g, b)
+
+
+# ---------- 核心：產生相似色集合 ----------
+
+def generate_similar_colors(target_hex, threshold=3, step=1):
+    target_lab = hex_to_lab(target_hex)
+
+    similar_colors = set()
+
+    for dL in np.arange(-threshold, threshold + step, step):
+        for da in np.arange(-threshold, threshold + step, step):
+            for db in np.arange(-threshold, threshold + step, step):
+
+                new_lab = LabColor(
+                    lab_l=target_lab.lab_l + dL,
+                    lab_a=target_lab.lab_a + da,
+                    lab_b=target_lab.lab_b + db
+                )
+
+                delta_e = delta_e_cie1976(target_lab, new_lab)
+
+                # 只保留球體內
+                if delta_e <= threshold:
+                    try:
+                        hex_color = lab_to_hex(new_lab)
+                        similar_colors.add(hex_color)
+                    except:
+                        continue
+
+    print(f"🎯 產生相似色數量: {len(similar_colors)}")
+    return similar_colors
+
+
+# ---------- 主功能 ----------
+
+def find_match_color(target_hex, threshold=3, step=1,
+                     json_file='Color-Analysis\\Color-Hunt\\color_palettes.json'):
+
+    # 讀取資料
     try:
         with open(json_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
     except FileNotFoundError:
-        print("❌ 找不到資料檔，請先執行爬蟲抓取資料。")
+        print("❌ 找不到資料檔")
         return
 
-    # 標準化輸入色號 (轉小寫並確保有 #)
-    target_hex = target_hex.lower()
-    if not target_hex.startswith('#'):
-        target_hex = '#' + target_hex
+    target_hex = clean_hex(target_hex)
 
-    # 2. 篩選包含該色號的色板
+    # 🔥 1️⃣ 先生成相似色集合
+    similar_set = generate_similar_colors(target_hex, threshold, step)
+    similar_set.add(target_hex)
+
     results = []
+
+    # 🔍 2️⃣ 用集合比對色板
     for item in data:
-        # 將色板中的所有顏色都轉小寫進行比對
-        if target_hex in [c.lower() for c in item['colors']]:
-            results.append(item)
+        for color in item['colors']:
+            try:
+                color_clean = clean_hex(color)
 
-    # 3. 根據按讚數排序 (由高到低)
-    results.sort(key=lambda x: x['likes'], reverse=True)
+                if color_clean in similar_set:
+                    results.append({
+                        "palette": item,
+                        "match_color": color_clean
+                    })
+                    break
+            except:
+                continue
 
+    # 📊 排序（按讚數）
+    results.sort(key=lambda x: x['palette']['likes'], reverse=True)
+
+    # 🖨 輸出
     print(f"\n🎨 搜尋色號: {target_hex}")
-    print(f"🔍 找到包含此顏色的色板共 {len(results)} 個，以下為最熱門的前 10 名：")
-    print("-" * 50)
+    print(f"🔍 相似色數量: {len(similar_set)} (ΔE ≤ {threshold})")
+    print(f"相似色: {similar_set}")
+    print(f"📏 ΔE 閾值: {threshold} | step: {step}")
+    print(f"🔍 找到相似色板 {len(results)} 個")
+    print("-" * 60)
 
-    for i, item in enumerate(results, 1):
-        colors_str = ", ".join(item['colors'])
-        print(f"排行 {i:02d} | 按讚數: {item['likes']:,} | 顏色: [{colors_str}]")
-    
+    for i, item in enumerate(results[:10], 1):
+        colors_str = ", ".join(item['palette']['colors'])
+        print(f"排行 {i:02d} | 👍 {item['palette']['likes']:,}")
+        print(f"        命中顏色: {item['match_color']}")
+        print(f"        色板: [{colors_str}]")
+
     if not results:
-        print("💡 找不到包含此色號的色板，建議抓取更多資料再試試看。")
+        print("💡 找不到相似色（可以調高 threshold 或 step）")
 
     return results
 
-# --- 使用範例 ---
-# 假設你想找包含粉色系 #FF9A9E 的熱門色板
-find_match_color("#faf7f3")
+
+# ---------- 測試 ----------
+
+find_match_color("#ffa4a4", threshold=10, step=1)

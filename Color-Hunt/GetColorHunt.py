@@ -6,7 +6,6 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta # 處理月份推算最準確的套件
 
 def parse_relative_date(relative_str):
-    """將相對時間字串（如 '9 months'）即時轉換為 YYYY-MM-DD"""
     now = datetime.now()
     try:
         # 處理 'Just now' 或 'Yesterday' 等特殊情況

@@ -131,4 +131,4 @@ def find_match_color(target_hex, threshold=3, step=1,
 
 # ---------- 測試 ----------
 
-find_match_color("#ffa4a4", threshold=10, step=1)
+find_match_color("#fffbde", threshold=4, step=1)

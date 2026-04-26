@@ -1,27 +1,35 @@
 # analyzer.py
-import json
 from colormath.color_objects import LabColor
 from colormath.color_diff import delta_e_cie1976
+from pymongo import MongoClient
 
 # 引入拆分出來的模組
 from src.constants import SEASON_CENTERS
 from src.utils import hex_to_lab
+from src.config import DB_URI, DB_NAME, COLLECTION_NAME
 
 class ColorAnalysisSystem:
-    def __init__(self, json_file='Color-Analysis\\Color-Hunt\\data\\color_palettes_all.json'):
+    def __init__(self, db_uri=DB_URI, db_name=DB_NAME, collection_name=COLLECTION_NAME):
         self.pca_centers = SEASON_CENTERS
-        self.palette_data = self._load_data(json_file)
+        self.client = MongoClient(db_uri)
+        self.db = self.client[db_name]
+        self.collection = self.db[collection_name]
+        self.palette_data = self.get_all_palettes()
 
-    def _load_data(self, json_file):
-        try:
-            with open(json_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            print(f"警告：找不到色板資料庫 ({json_file})")
-            return []
-        except json.JSONDecodeError:
-            print("警告：JSON 格式錯誤")
-            return []
+    def get_all_palettes(self):
+        # 從資料庫撈出所有資料，過濾掉 _id
+        return list(self.collection.find({}, {'_id': 0}))
+
+    # def _load_data(self, json_file):
+    #     try:
+    #         with open(json_file, 'r', encoding='utf-8') as f:
+    #             return json.load(f)
+    #     except FileNotFoundError:
+    #         print(f"警告：找不到色板資料庫 ({json_file})")
+    #         return []
+    #     except json.JSONDecodeError:
+    #         print("警告：JSON 格式錯誤")
+    #         return []
 
     def predict_season(self, garment_hex):
         target_lab = hex_to_lab(garment_hex) # 使用 utils 的函式
